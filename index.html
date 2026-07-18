@@ -1,0 +1,1337 @@
+<!DOCTYPE html>
+<html lang="ne">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ई-पढाई: सुरक्षित शिक्षक-विद्यार्थी ई-लर्निङ प्रणाली</title>
+    <!-- Tailwind CSS for Modern UI Design -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts for Nepali Text (Noto Sans Devanagari) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Devanagari:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <!-- Supabase JS Client library -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <style>
+        body {
+            font-family: 'Noto Sans Devanagari', sans-serif;
+        }
+        /* Secure video player container */
+        .secure-video-wrapper {
+            position: relative;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        .secure-video-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: transparent;
+            z-index: 10;
+        }
+        /* Smooth animations */
+        .fade-in {
+            animation: fadeIn 0.4s ease-in-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body class="bg-slate-100 text-slate-800 min-h-screen flex flex-col">
+
+    <!-- ==================== LOGIN / REGISTER CONTAINER ==================== -->
+    <section id="authSection" class="flex-grow flex items-center justify-center p-4 fade-in">
+        <div class="bg-white w-full max-w-md rounded-2xl shadow-xl border border-slate-200 overflow-hidden">
+            <!-- Branding Header -->
+            <div class="bg-slate-900 text-white p-6 text-center">
+                <span class="text-4xl">🎯</span>
+                <h2 class="text-2xl font-bold text-amber-500 mt-2">ई-पढाई</h2>
+                <p class="text-xs text-slate-400 mt-1">सुरक्षित नेपाली डिजिटल शिक्षक-विद्यार्थी पोर्टल</p>
+            </div>
+
+            <!-- Tab Buttons (Login vs Register) -->
+            <div class="flex border-b border-slate-200">
+                <button onclick="toggleAuthTab('login')" id="authTab-login" class="w-1/2 py-3 text-sm font-bold border-b-2 border-blue-600 text-blue-600">लगइन गर्नुहोस्</button>
+                <button onclick="toggleAuthTab('register')" id="authTab-register" class="w-1/2 py-3 text-sm font-bold text-slate-500 hover:text-slate-700">दर्ता गर्नुहोस्</button>
+            </div>
+
+            <!-- Form Wrapper -->
+            <div class="p-6">
+                <!-- Info Alert with Demo Credentials -->
+                <div id="demoCredentialsBox" class="bg-blue-50 border-l-4 border-blue-500 p-3 rounded-r-lg mb-4 text-xs text-blue-900">
+                    <p class="font-bold mb-1"><i class="fa-solid fa-circle-info mr-1"></i> तत्काल टेस्ट गर्नका लागि डेमो खाताहरू:</p>
+                    <p><b>शिक्षक:</b> shikshak@epadhai.com | पासवर्ड: shikshak123</p>
+                    <p class="mt-1"><b>विद्यार्थी:</b> bidarthi@epadhai.com | पासवर्ड: bidarthi123</p>
+                </div>
+
+                <!-- LOGIN FORM -->
+                <form id="loginForm" onsubmit="handleLogin(event)" class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">इमेल ठेगाना *</label>
+                        <input type="email" id="loginEmail" required placeholder="example@email.com" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">पासवर्ड *</label>
+                        <input type="password" id="loginPassword" required placeholder="******" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm py-2.5 rounded-lg transition shadow-md">
+                        <i class="fa-solid fa-right-to-bracket mr-1"></i> प्रणालीमा प्रवेश गर्नुहोस्
+                    </button>
+                </form>
+
+                <!-- REGISTER FORM -->
+                <form id="registerForm" onsubmit="handleRegister(event)" class="space-y-4 hidden">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">पूरा नाम *</label>
+                        <input type="text" id="regName" required placeholder="तपाईंको नाम लेख्नुहोस्" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">इमेल ठेगाना *</label>
+                        <input type="email" id="regEmail" required placeholder="example@email.com" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">पासवर्ड (कम्तीमा ६ अक्षर) *</label>
+                        <input type="password" id="regPassword" required minlength="6" placeholder="******" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">तपाईंको पद/भूमिका रोज्नुहोस् *</label>
+                        <select id="regRole" required class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <option value="student">विद्यार्थी (Student) - पाठहरू मात्र हेर्ने</option>
+                            <option value="teacher">शिक्षक (Teacher) - ड्यासबोर्डमा सामग्री थप्ने</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="w-full bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-sm py-2.5 rounded-lg transition shadow-md">
+                        <i class="fa-solid fa-user-plus mr-1"></i> नयाँ खाता दर्ता गर्नुहोस्
+                    </button>
+                </form>
+            </div>
+        </div>
+    </section>
+
+    <!-- ==================== MAIN LEARNING PORTAL ==================== -->
+    <section id="portalSection" class="hidden flex-col flex-grow">
+        <!-- TOP HEADER / NAVBAR -->
+        <header class="bg-slate-900 text-white shadow-md">
+            <div class="max-w-7xl mx-auto px-4 py-3 flex flex-wrap justify-between items-center">
+                <div class="flex items-center space-x-3">
+                    <span class="text-3xl">🎯</span>
+                    <div>
+                        <h1 class="text-2xl font-bold text-amber-500">ई-पढाई</h1>
+                        <p class="text-xs text-slate-400" id="userBadgeText">डिजिटल पोर्टल</p>
+                    </div>
+                </div>
+                
+                <!-- Real-time Status Badge -->
+                <div class="flex items-center space-x-2 bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 px-3 py-1.5 rounded-full text-xs font-semibold my-2 sm:my-0">
+                    <span class="relative flex h-2 w-2">
+                        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                        <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                    </span>
+                    <span id="realtimeStatusText">सुरक्षित मोड सक्रिय</span>
+                </div>
+
+                <!-- Navigation Tabs based on Role -->
+                <div class="flex items-center space-x-3">
+                    <div class="flex space-x-2 bg-slate-800 p-1 rounded-lg">
+                        <button onclick="switchTab('student')" id="tabBtn-student" class="px-4 py-2 text-sm rounded-md font-semibold transition bg-blue-600 text-white">
+                            <i class="fa-solid fa-graduation-cap mr-1"></i> विद्यार्थी पोर्टल
+                        </button>
+                        <button onclick="switchTab('teacher')" id="tabBtn-teacher" class="px-4 py-2 text-sm rounded-md font-semibold transition text-slate-300 hover:text-white hidden">
+                            <i class="fa-solid fa-chalkboard-user mr-1"></i> शिक्षक ड्यासबोर्ड
+                        </button>
+                        <button onclick="switchTab('settings')" id="tabBtn-settings" class="px-4 py-2 text-sm rounded-md font-semibold transition text-slate-300 hover:text-white hidden">
+                            <i class="fa-solid fa-gears mr-1"></i> Supabase सेटअप
+                        </button>
+                    </div>
+
+                    <!-- Logout Button -->
+                    <button onclick="handleLogout()" class="bg-red-600 hover:bg-red-700 text-white text-xs font-bold px-3 py-2.5 rounded-lg transition">
+                        <i class="fa-solid fa-power-off mr-1"></i> लगआउट
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- MAIN CONTENT AREA -->
+        <main class="flex-grow max-w-7xl w-full mx-auto p-4">
+            
+            <!-- ==================== TAB 1: STUDENT PORTAL ==================== -->
+            <section id="tab-student" class="fade-in">
+                <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+                    <!-- Search and Categories Sidebar -->
+                    <div class="lg:col-span-1 bg-white p-5 rounded-2xl shadow-sm border border-slate-200 h-fit">
+                        <h3 class="text-lg font-bold text-slate-900 mb-4"><i class="fa-solid fa-magnifying-glass mr-2 text-blue-600"></i>खोज्नुहोस्</h3>
+                        <input type="text" id="courseSearch" oninput="filterCourses()" placeholder="कोर्सको नाम खोज्नुहोस्..." class="w-full px-4 py-2.5 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none mb-6">
+                        
+                        <h3 class="text-lg font-bold text-slate-900 mb-3"><i class="fa-solid fa-tags mr-2 text-blue-600"></i>विषय वर्गीकरण</h3>
+                        <div class="space-y-1" id="categoryList">
+                            <button onclick="filterCategory('all')" class="w-full text-left px-3 py-2 rounded-lg text-sm font-semibold bg-blue-50 text-blue-700">सबै विषयहरू</button>
+                            <button onclick="filterCategory('विज्ञान')" class="w-full text-left px-3 py-2 rounded-lg text-sm text-slate-600 hover:bg-slate-50">विज्ञान (Science)</button>
+                            <button onclick="filterCategory('गणित')" class="w-full text-left px-3 py-2 rounded-lg text-sm text-slate-600 hover:bg-slate-50">गणित (Maths)</button>
+                            <button onclick="filterCategory('नेपाली')" class="w-full text-left px-3 py-2 rounded-lg text-sm text-slate-600 hover:bg-slate-50">नेपाली (Nepali)</button>
+                            <button onclick="filterCategory('सामाजिक')" class="w-full text-left px-3 py-2 rounded-lg text-sm text-slate-600 hover:bg-slate-50">सामाजिक शिक्षा</button>
+                        </div>
+                    </div>
+
+                    <!-- Course View Area -->
+                    <div class="lg:col-span-3">
+                        <!-- Dashboard Statistics Overview for Students -->
+                        <div class="bg-gradient-to-r from-blue-600 to-indigo-700 text-white rounded-2xl p-6 mb-6 shadow-md flex justify-between items-center flex-wrap gap-4">
+                            <div>
+                                <h2 class="text-xl sm:text-2xl font-bold mb-1" id="studentGreeting">नमस्कार विद्यार्थी साथी! 👋</h2>
+                                <p class="text-blue-100 text-sm">शिक्षकले नयाँ सामाग्री राख्ने बित्तिकै यहाँ बिना रिफ्रेस तुरुन्त देखिनेछ।</p>
+                            </div>
+                            <div class="flex space-x-4">
+                                <div class="bg-white/10 px-4 py-2.5 rounded-xl text-center">
+                                    <span class="block text-2xl font-bold" id="statStudentCourses">०</span>
+                                    <span class="text-xs text-blue-200">जम्मा कोर्स</span>
+                                </div>
+                                <div class="bg-white/10 px-4 py-2.5 rounded-xl text-center">
+                                    <span class="block text-2xl font-bold" id="statStudentPDFs">०</span>
+                                    <span class="text-xs text-blue-200">पीडीएफ नोटहरू</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Interactive Classroom / Course Detail Viewer -->
+                        <div id="classroomViewer" class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden mb-6 hidden">
+                            <div class="bg-slate-900 text-white p-4 flex justify-between items-center">
+                                <div>
+                                    <span class="text-xs bg-amber-500 text-slate-950 font-bold px-2 py-1 rounded">अनलाइन कक्षा</span>
+                                    <h2 id="classroomCourseTitle" class="text-lg font-bold mt-1">कोर्सको नाम</h2>
+                                </div>
+                                <button onclick="closeClassroom()" class="bg-slate-800 hover:bg-slate-700 px-3 py-1.5 rounded-lg text-sm text-slate-300 hover:text-white">
+                                    <i class="fa-solid fa-circle-xmark mr-1"></i> कक्षा बन्द गर्नुहोस्
+                                </button>
+                            </div>
+                            <div class="grid grid-cols-1 md:grid-cols-3">
+                                <!-- Left: Video Playback & Content Details -->
+                                <div class="md:col-span-2 p-6 border-r border-slate-200">
+                                    <h3 id="classroomLessonTitle" class="text-xl font-bold text-slate-900 mb-4">अध्यायको शीर्षक</h3>
+                                    
+                                    <!-- Secure Video Player Wrapper -->
+                                    <div class="secure-video-wrapper rounded-xl overflow-hidden bg-black aspect-video mb-6 relative" oncontextmenu="return false;">
+                                        <div class="secure-video-overlay" id="playerOverlay"></div>
+                                        <iframe id="classroomVideoPlayer" class="w-full h-full" src="" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+                                    </div>
+
+                                    <div class="space-y-4">
+                                        <h4 class="font-bold text-slate-950 text-base border-b pb-2"><i class="fa-solid fa-folder-open mr-2 text-blue-600"></i>डाउनलोड र अध्ययन सामाग्रीहरू</h4>
+                                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                            <!-- PDF download card -->
+                                            <div id="classroomPdfCard" class="bg-slate-50 p-4 rounded-xl border border-slate-200 flex items-center justify-between">
+                                                <div class="flex items-center space-x-3">
+                                                    <span class="text-3xl text-red-500"><i class="fa-solid fa-file-pdf"></i></span>
+                                                    <div>
+                                                        <h5 class="font-bold text-xs">पाठ्य सामग्री नोटहरू (PDF)</h5>
+                                                        <p class="text-[10px] text-slate-500">शिक्षकद्वारा तयार गरिएको</p>
+                                                    </div>
+                                                </div>
+                                                <a id="classroomPdfLink" href="#" target="_blank" download class="bg-blue-600 hover:bg-blue-700 text-white text-xs px-3 py-2 rounded-lg font-bold text-center flex items-center">
+                                                    <i class="fa-solid fa-circle-down mr-1"></i> डाउनलोड
+                                                </a>
+                                            </div>
+                                            <!-- Image view card -->
+                                            <div id="classroomImgCard" class="bg-slate-50 p-4 rounded-xl border border-slate-200 flex items-center justify-between">
+                                                <div class="flex items-center space-x-3">
+                                                    <span class="text-3xl text-amber-500"><i class="fa-solid fa-image"></i></span>
+                                                    <div>
+                                                        <h5 class="font-bold text-xs">कक्षा चित्र (Diagram/Image)</h5>
+                                                        <p class="text-[10px] text-slate-500">चित्र हेर्न क्लिक गर्नुहोस्</p>
+                                                    </div>
+                                                </div>
+                                                <button onclick="openFullImage()" class="bg-amber-500 hover:bg-amber-600 text-slate-950 text-xs px-3 py-2 rounded-lg font-bold">
+                                                    <i class="fa-solid fa-expand mr-1"></i> हेर्नुहोस्
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <div class="bg-amber-50 border-l-4 border-amber-500 p-3 rounded-r-lg mt-4 text-xs text-amber-900 flex items-start space-x-2">
+                                            <span class="text-amber-500 mt-0.5"><i class="fa-solid fa-triangle-exclamation"></i></span>
+                                            <p><b>सुरक्षा निर्देशन:</b> यस भिडियोको कपीराइट अधिकार सुरक्षित गरिएको हुनाले यसलाई रेकर्ड वा डाउनलोड गर्न प्रतिबन्धित छ।</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Right: Chapter/Lesson List Sidebar -->
+                                <div class="md:col-span-1 bg-slate-50 p-4">
+                                    <h4 class="font-bold text-slate-800 text-sm mb-3 border-b pb-2"><i class="fa-solid fa-list mr-1"></i> अध्यायहरू (Chapters)</h4>
+                                    <div class="space-y-2 max-h-[450px] overflow-y-auto" id="classroomChaptersList">
+                                        <!-- Dynamic elements inserted here -->
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Courses Grid list -->
+                        <div id="studentCourseGrid" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                            <!-- Dynamic Course Cards go here -->
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ==================== TAB 2: TEACHER DASHBOARD ==================== -->
+            <section id="tab-teacher" class="fade-in hidden">
+                <!-- Analytics Summary -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                    <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex items-center justify-between">
+                        <div>
+                            <span class="text-xs font-bold text-slate-400 block mb-1">जम्मा कोर्स संख्या</span>
+                            <span id="statTeacherCourses" class="text-3xl font-extrabold text-blue-600">०</span>
+                        </div>
+                        <div class="h-12 w-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center text-xl"><i class="fa-solid fa-book-open"></i></div>
+                    </div>
+                    <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex items-center justify-between">
+                        <div>
+                            <span class="text-xs font-bold text-slate-400 block mb-1">जम्मा सामाग्री/भिडियो</span>
+                            <span id="statTeacherLessons" class="text-3xl font-extrabold text-amber-500">०</span>
+                        </div>
+                        <div class="h-12 w-12 rounded-2xl bg-amber-50 text-amber-500 flex items-center justify-center text-xl"><i class="fa-solid fa-video"></i></div>
+                    </div>
+                    <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex items-center justify-between">
+                        <div>
+                            <span class="text-xs font-bold text-slate-400 block mb-1">विद्यार्थी संख्या (अनुमानित)</span>
+                            <span class="text-3xl font-extrabold text-emerald-500">४५०+</span>
+                        </div>
+                        <div class="h-12 w-12 rounded-2xl bg-emerald-50 text-emerald-500 flex items-center justify-center text-xl"><i class="fa-solid fa-users"></i></div>
+                    </div>
+                    <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex items-center justify-between">
+                        <div>
+                            <span class="text-xs font-bold text-slate-400 block mb-1">सिन्क्रोनाइजेसन गति</span>
+                            <span class="text-3xl font-extrabold text-indigo-500">०.५ Sec</span>
+                        </div>
+                        <div class="h-12 w-12 rounded-2xl bg-indigo-50 text-indigo-500 flex items-center justify-center text-xl"><i class="fa-solid fa-bolt"></i></div>
+                    </div>
+                </div>
+
+                <!-- Double Column: Create Forms & List of existing content -->
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                    
+                    <!-- Left: Control Forms -->
+                    <div class="lg:col-span-5 space-y-6">
+                        <!-- Form 1: Add New Course -->
+                        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+                            <h3 class="text-lg font-bold text-slate-900 mb-4 border-b pb-2 text-blue-600"><i class="fa-solid fa-folder-plus mr-2"></i>१. नयाँ कोर्स सिर्जना गर्नुहोस्</h3>
+                            <form id="addCourseForm" onsubmit="handleCreateCourse(event)" class="space-y-4">
+                                <div>
+                                    <label class="block text-xs font-semibold text-slate-600 mb-1">कोर्सको शीर्षक *</label>
+                                    <input type="text" id="newCourseTitle" required placeholder="उदाहरण: कक्षा १० - अनिवार्य विज्ञान" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                </div>
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label class="block text-xs font-semibold text-slate-600 mb-1">विषय (Category) *</label>
+                                        <select id="newCourseSubject" required class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                            <option value="विज्ञान">विज्ञान (Science)</option>
+                                            <option value="गणित">गणित (Maths)</option>
+                                            <option value="नेपाली">नेपाली (Nepali)</option>
+                                            <option value="सामाजिक">सामाजिक शिक्षा</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-semibold text-slate-600 mb-1">थमनेल इमेज लिङ्क *</label>
+                                        <input type="url" id="newCourseThumbnail" required placeholder="https://..." class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                    </div>
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-semibold text-slate-600 mb-1">कोर्सको संक्षिप्त विवरण *</label>
+                                    <textarea id="newCourseDesc" required rows="2" placeholder="यो कोर्सको बारेमा विद्यार्थीलाई छोटो जानकारी लेख्नुहोस्..." class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
+                                </div>
+                                <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm py-2 px-4 rounded-lg transition">
+                                    <i class="fa-solid fa-plus-circle mr-1"></i> कोर्स सुरक्षित गर्नुहोस्
+                                </button>
+                            </form>
+                        </div>
+
+                        <!-- Form 2: Add New Lesson to Course -->
+                        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+                            <h3 class="text-lg font-bold text-slate-900 mb-4 border-b pb-2 text-amber-500"><i class="fa-solid fa-file-circle-plus mr-2"></i>२. पाठ / सिकाई सामाग्री थप्नुहोस्</h3>
+                            <form id="addLessonForm" onsubmit="handleCreateLesson(event)" class="space-y-4">
+                                <div>
+                                    <label class="block text-xs font-semibold text-slate-600 mb-1">कोर्स छनोट गर्नुहोस् *</label>
+                                    <select id="lessonTargetCourse" required class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                        <option value="">पहिले कोर्स रोज्नुहोस्...</option>
+                                        <!-- Dynamic Options from stored courses -->
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-semibold text-slate-600 mb-1">अध्याय वा पाठको शीर्षक *</label>
+                                    <input type="text" id="newLessonTitle" required placeholder="उदाहरण: अध्याय १ - ताप र यसका असरहरू" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-semibold text-slate-600 mb-1">YouTube भिडियोको पूरा लिङ्क *</label>
+                                    <input type="url" id="newLessonYoutube" required placeholder="उदाहरण: https://www.youtube.com/watch?v=..." class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                </div>
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label class="block text-xs font-semibold text-slate-600 mb-1">PDF नोट लिङ्क (View/Download)</label>
+                                        <input type="url" id="newLessonPdf" placeholder="https://..." class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-semibold text-slate-600 mb-1">कक्षा चित्र/इमेज लिङ्क</label>
+                                        <input type="url" id="newLessonImage" placeholder="https://..." class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                    </div>
+                                </div>
+                                <button type="submit" class="w-full bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-sm py-2 px-4 rounded-lg transition">
+                                    <i class="fa-solid fa-cloud-arrow-up mr-1"></i> मिडिया अपलोड गरि स्वतः पठाउनुहोस्
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+
+                    <!-- Right: Active Management Panel -->
+                    <div class="lg:col-span-7">
+                        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+                            <div class="flex justify-between items-center mb-4 border-b pb-2">
+                                <h3 class="text-lg font-bold text-slate-900"><i class="fa-solid fa-bars-progress mr-2 text-blue-600"></i>हालका सक्रिय कोर्स तथा पाठ व्यवस्थापन</h3>
+                                <button onclick="clearAllDataDemo()" class="text-xs bg-red-50 text-red-600 border border-red-200 px-3 py-1 rounded-lg hover:bg-red-100">
+                                    <i class="fa-solid fa-trash-can mr-1"></i> सबै डाटा मेटाउनुहोस्
+                                </button>
+                            </div>
+                            
+                            <!-- List Group -->
+                            <div class="space-y-4 max-h-[600px] overflow-y-auto" id="teacherCourseList">
+                                <!-- Dynamic elements filled via script -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ==================== TAB 3: SUPABASE SETTINGS ==================== -->
+            <section id="tab-settings" class="fade-in hidden">
+                <div class="max-w-xl mx-auto bg-white p-8 rounded-2xl shadow-sm border border-slate-200">
+                    <div class="text-center mb-6">
+                        <span class="text-4xl text-amber-500"><i class="fa-solid fa-database animate-pulse"></i></span>
+                        <h3 class="text-2xl font-bold text-slate-900 mt-2">Supabase ब्याकइन्ड सेटिङ</h3>
+                        <p class="text-sm text-slate-500">प्रणालीलाई स्थायी बनाउन र वास्तविक डाटाबेस जडान गर्न यहाँ आवश्यक विवरणहरू भर्नुहोस्।</p>
+                    </div>
+
+                    <form id="supabaseConfigForm" class="space-y-4">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 mb-1">Supabase API URL</label>
+                            <input type="text" id="sbUrl" disabled placeholder="https://your-project.supabase.co" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-slate-100 text-slate-500 focus:outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 mb-1">Supabase Anon Key</label>
+                            <input type="password" id="sbKey" disabled placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-slate-100 text-slate-500 focus:outline-none">
+                        </div>
+                        <div class="bg-blue-50 p-4 rounded-xl border border-blue-200 text-xs text-blue-900 space-y-2">
+                            <p class="font-bold"><i class="fa-solid fa-circle-info mr-1"></i> सुचना:</p>
+                            <p>यो प्रणालीमा तपाईंको Supabase कुञ्जीहरू स्थायी रूपमा कोडभित्रै सुरक्षित (Hardcode) गरिएको छ। सुरक्षा र सहजताको लागि यस विन्डोबाट कुञ्जीहरू परिवर्तन गर्ने कार्य असक्षम पारिएको छ।</p>
+                        </div>
+                    </form>
+                </div>
+            </section>
+
+        </main>
+    </section>
+
+    <!-- FOOTER -->
+    <footer class="bg-slate-900 text-slate-400 text-center py-4 text-xs border-t border-slate-800 mt-auto">
+        <p>© २०२६ ई-पढाई प्रोजेक्ट विकास निर्देशिका। सबै अधिकार सुरक्षित।</p>
+    </footer>
+
+    <!-- GLOBAL TOAST NOTIFICATION -->
+    <div id="toast" class="fixed bottom-6 right-6 bg-slate-900 text-white px-5 py-3 rounded-xl shadow-2xl z-50 transition transform duration-300 translate-y-20 opacity-0 pointer-events-none flex items-center space-x-3 border border-slate-800">
+        <span class="text-amber-500 text-lg" id="toastIcon"><i class="fa-solid fa-bell"></i></span>
+        <span id="toastMsg" class="font-semibold text-sm">केही नयाँ अपडेट प्राप्त भयो।</span>
+    </div>
+
+    <!-- FULL SCREEN IMAGE PREVIEW MODAL -->
+    <div id="imageModal" class="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4 hidden">
+        <button onclick="closeFullImage()" class="absolute top-6 right-6 text-white text-3xl hover:text-amber-500 transition"><i class="fa-solid fa-circle-xmark"></i></button>
+        <img id="modalImageTarget" src="" class="max-w-full max-h-[85vh] rounded-lg shadow-2xl object-contain">
+    </div>
+
+    <!-- ==========================================
+         JAVASCRIPT CONTROLLERS AND LOGIC SECTION 
+         ========================================== -->
+    <script>
+        // Pre-defined Demo Accounts for Local Simulator Testing if DB connection fails
+        const demoUsers = [
+            { email: "shikshak@epadhai.com", password: "shikshak123", name: "राम प्रसाद आचार्य (शिक्षक)", role: "teacher" },
+            { email: "bidarthi@epadhai.com", password: "bidarthi123", name: "हरि माया विक (विद्यार्थी)", role: "student" }
+        ];
+
+        // Default Mock Data for Courses
+        const defaultCourses = [
+            {
+                id: "course-1",
+                title: "माध्यमिक तह (कक्षा १०) - विज्ञान र प्रविधि",
+                subject: "विज्ञान",
+                thumbnail: "https://images.unsplash.com/photo-1532094349884-543bc11b234d?auto=format&fit=crop&q=80&w=600",
+                description: "यो पाठ्यक्रम कक्षा १० को नयाँ पाठ्यक्रम अनुसार तयार पारिएको छ। यसमा भौतिक, रसायन, जीव विज्ञान सम्बन्धी कुराहरू समेटिएका छन्।"
+            },
+            {
+                id: "course-2",
+                title: "अनिवार्य गणित (Mathematics) - आधारभूत देखि उच्च तह",
+                subject: "गणित",
+                thumbnail: "https://images.unsplash.com/photo-1635070041078-e363dbe005cb?auto=format&fit=crop&q=80&w=600",
+                description: "अल्जेब्रा, ज्यामिति, र तथ्याङ्क शास्त्रका जटिल समस्याहरूलाई छोटो र सजिलो तरिकाले हल गर्ने अभ्यासहरू।"
+            }
+        ];
+
+        // Default Mock Data for Lessons
+        const defaultLessons = [
+            {
+                id: "lesson-1",
+                course_id: "course-1",
+                title: "अध्याय १ - बल र चाप (Force and Pressure)",
+                youtube_url: "s_q-lUuQk_0",
+                pdf_url: "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf",
+                image_url: "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&q=80&w=800"
+            },
+            {
+                id: "lesson-2",
+                course_id: "course-1",
+                title: "अध्याय २ - ताप र यसका लहरहरू (Heat and Thermodynamics)",
+                youtube_url: "D762jPAnZtY",
+                pdf_url: "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf",
+                image_url: ""
+            }
+        ];
+
+        // Global State Variables
+        let currentUser = null;
+        let currentTab = 'student';
+        let courses = [];
+        let lessons = [];
+        let activeCategory = 'all';
+        let activeClassroomCourse = null;
+        let sbClient = null;
+
+        // On Window Load
+        window.onload = function() {
+            initDatabase();
+            loadSupabaseConfig();
+            initSession();
+            setupCrossTabSync();
+        };
+
+        // Initialize Accounts and Mock Database
+        function initDatabase() {
+            // Save Demo Users if not present
+            if (!localStorage.getItem('elearning_users')) {
+                localStorage.setItem('elearning_users', JSON.stringify(demoUsers));
+            }
+            // Save Default Courses
+            if (!localStorage.getItem('elearning_courses')) {
+                localStorage.setItem('elearning_courses', JSON.stringify(defaultCourses));
+            }
+            // Save Default Lessons
+            if (!localStorage.getItem('elearning_lessons')) {
+                localStorage.setItem('elearning_lessons', JSON.stringify(defaultLessons));
+            }
+
+            courses = JSON.parse(localStorage.getItem('elearning_courses'));
+            lessons = JSON.parse(localStorage.getItem('elearning_lessons'));
+        }
+
+        // Session Controller Check
+        function initSession() {
+            const savedSession = localStorage.getItem('elearning_session');
+            if (savedSession) {
+                currentUser = JSON.parse(savedSession);
+                showPortal();
+            } else {
+                showAuthForm();
+            }
+        }
+
+        // Toggle Authentication view (Login vs Register)
+        function toggleAuthTab(type) {
+            const loginForm = document.getElementById('loginForm');
+            const registerForm = document.getElementById('registerForm');
+            const loginTab = document.getElementById('authTab-login');
+            const registerTab = document.getElementById('authTab-register');
+
+            if (type === 'login') {
+                loginForm.classList.remove('hidden');
+                registerForm.classList.add('hidden');
+                loginTab.className = "w-1/2 py-3 text-sm font-bold border-b-2 border-blue-600 text-blue-600";
+                registerTab.className = "w-1/2 py-3 text-sm font-bold text-slate-500 hover:text-slate-700";
+            } else {
+                loginForm.classList.add('hidden');
+                registerForm.classList.remove('hidden');
+                registerTab.className = "w-1/2 py-3 text-sm font-bold border-b-2 border-blue-600 text-blue-600";
+                loginTab.className = "w-1/2 py-3 text-sm font-bold text-slate-500 hover:text-slate-700";
+            }
+        }
+
+        // Handle Account Registration
+        async function handleRegister(e) {
+            e.preventDefault();
+            const name = document.getElementById('regName').value.trim();
+            const email = document.getElementById('regEmail').value.trim().toLowerCase();
+            const password = document.getElementById('regPassword').value;
+            const role = document.getElementById('regRole').value;
+
+            const submitBtn = e.target.querySelector('button');
+            submitBtn.disabled = true;
+            submitBtn.textContent = "प्रक्रिया हुँदैछ...";
+
+            if (sbClient) {
+                try {
+                    // 1. Supabase Auth Registration
+                    const { data, error } = await sbClient.auth.signUp({
+                        email: email,
+                        password: password,
+                        options: {
+                            data: {
+                                full_name: name,
+                                role: role
+                            }
+                        }
+                    });
+                    if (error) throw error;
+
+                    // 2. Insert user record into public table
+                    if (data.user) {
+                        const { error: profileError } = await sbClient
+                            .from('users')
+                            .insert([{
+                                id: data.user.id,
+                                full_name: name,
+                                email: email,
+                                role: role
+                            }]);
+                        if (profileError) throw profileError;
+                    }
+
+                    triggerToast("खाता सफलतापूर्वक दर्ता भयो! अब लगइन गर्नुहोस्।", "fa-circle-check");
+                    document.getElementById('registerForm').reset();
+                    toggleAuthTab('login');
+                } catch (err) {
+                    triggerToast("दर्ता त्रुटि: " + err.message, "fa-circle-xmark");
+                }
+            } else {
+                // Local Storage Simulator fallback
+                let registeredUsers = JSON.parse(localStorage.getItem('elearning_users')) || [];
+                if (registeredUsers.some(u => u.email === email)) {
+                    triggerToast("यो इमेल पहिले नै दर्ता भइसकेको छ!", "fa-circle-xmark");
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = "नयाँ खाता दर्ता गर्नुहोस्";
+                    return;
+                }
+
+                const newUser = { email, password, name, role };
+                registeredUsers.push(newUser);
+                localStorage.setItem('elearning_users', JSON.stringify(registeredUsers));
+
+                triggerToast("खाता सफलतापूर्वक सिर्जना भयो! अब लगइन गर्नुहोस्।", "fa-circle-check");
+                document.getElementById('registerForm').reset();
+                toggleAuthTab('login');
+            }
+            submitBtn.disabled = false;
+            submitBtn.textContent = "नयाँ खाता दर्ता गर्नुहोस्";
+        }
+
+        // Handle Account Login
+        async function handleLogin(e) {
+            e.preventDefault();
+            const email = document.getElementById('loginEmail').value.trim().toLowerCase();
+            const password = document.getElementById('loginPassword').value;
+
+            const submitBtn = e.target.querySelector('button');
+            submitBtn.disabled = true;
+            submitBtn.textContent = "प्रवेश हुँदैछ...";
+
+            if (sbClient) {
+                try {
+                    // 1. Supabase auth validation
+                    const { data, error } = await sbClient.auth.signInWithPassword({ email, password });
+                    if (error) throw error;
+
+                    // 2. Get user role from the public users table
+                    const { data: profile, error: profileErr } = await sbClient
+                        .from('users')
+                        .select('*')
+                        .eq('id', data.user.id)
+                        .single();
+
+                    if (profileErr) throw profileErr;
+
+                    currentUser = {
+                        id: data.user.id,
+                        email: data.user.email,
+                        name: profile.full_name,
+                        role: profile.role
+                    };
+
+                    localStorage.setItem('elearning_session', JSON.stringify(currentUser));
+                    triggerToast(`स्वागत छ, ${currentUser.name}!`, "fa-circle-check");
+                    showPortal();
+                } catch (err) {
+                    triggerToast("लगइन त्रुटि: " + err.message, "fa-triangle-exclamation");
+                }
+            } else {
+                // Local Storage Simulator fallback
+                const registeredUsers = JSON.parse(localStorage.getItem('elearning_users')) || [];
+                const user = registeredUsers.find(u => u.email === email && u.password === password);
+
+                if (user) {
+                    currentUser = user;
+                    localStorage.setItem('elearning_session', JSON.stringify(user));
+                    triggerToast(`स्वागत छ, ${user.name}!`, "fa-circle-check");
+                    showPortal();
+                } else {
+                    triggerToast("इमेल वा पासवर्ड मिलेन। पुनः प्रयास गर्नुहोस्।", "fa-triangle-exclamation");
+                }
+            }
+            submitBtn.disabled = false;
+            submitBtn.textContent = "प्रणालीमा प्रवेश गर्नुहोस्";
+        }
+
+        // Handle Logout
+        async function handleLogout() {
+            if (sbClient) {
+                await sbClient.auth.signOut();
+            }
+            currentUser = null;
+            localStorage.removeItem('elearning_session');
+            showAuthForm();
+            triggerToast("सफलतापूर्वक लगआउट भयो।", "fa-right-from-bracket");
+        }
+
+        // Show Auth Screen
+        function showAuthForm() {
+            document.getElementById('authSection').classList.remove('hidden');
+            document.getElementById('portalSection').classList.add('hidden');
+            document.getElementById('portalSection').classList.remove('flex');
+        }
+
+        // Show Logged-in Protected Portal View
+        function showPortal() {
+            document.getElementById('authSection').classList.add('hidden');
+            document.getElementById('portalSection').classList.remove('hidden');
+            document.getElementById('portalSection').classList.add('flex');
+
+            // Apply Roles Base Protection UI
+            const dashboardBtn = document.getElementById('tabBtn-teacher');
+            const settingsBtn = document.getElementById('tabBtn-settings');
+            const studentGreeting = document.getElementById('studentGreeting');
+            const userBadgeText = document.getElementById('userBadgeText');
+
+            if (currentUser.role === 'teacher') {
+                dashboardBtn.classList.remove('hidden'); // Show Dashboard to Teacher
+                settingsBtn.classList.remove('hidden'); // Show Settings to Teacher (Teacher only)
+                userBadgeText.innerHTML = `<span class="bg-amber-500 text-slate-950 text-[10px] font-bold px-2 py-0.5 rounded mr-1">शिक्षक पोर्टल</span> ${currentUser.name}`;
+                studentGreeting.innerText = `नमस्कार आदरणीय शिक्षक, ${currentUser.name}! 👋`;
+            } else {
+                dashboardBtn.classList.add('hidden'); // Hide Dashboard for Students
+                settingsBtn.classList.add('hidden'); // Hide Settings for Students
+                userBadgeText.innerHTML = `<span class="bg-blue-600 text-white text-[10px] font-bold px-2 py-0.5 rounded mr-1">विद्यार्थी पोर्टल</span> ${currentUser.name}`;
+                studentGreeting.innerText = `नमस्कार प्रिय विद्यार्थी, ${currentUser.name}! 👋`;
+                
+                // Safety enforcement: If student tries to force open teacher dashboard or settings
+                if (currentTab === 'teacher' || currentTab === 'settings') {
+                    switchTab('student');
+                }
+            }
+
+            renderAll();
+        }
+
+        // Setup real-time simulation across tabs
+        function setupCrossTabSync() {
+            window.addEventListener('storage', (e) => {
+                if (e.key === 'elearning_courses' || e.key === 'elearning_lessons') {
+                    courses = JSON.parse(localStorage.getItem('elearning_courses')) || [];
+                    lessons = JSON.parse(localStorage.getItem('elearning_lessons')) || [];
+                    triggerToast("नयाँ शैक्षिक सामग्री प्राप्त भयो! पृष्ठ स्वतः अपडेट भयो।", "fa-bolt");
+                    renderAll();
+                    if (activeClassroomCourse) {
+                        renderClassroomChapters(activeClassroomCourse);
+                    }
+                }
+            });
+        }
+
+
+        // Supabase Initialization & Loader (Using User's credentials)
+        function loadSupabaseConfig() {
+            const url = "https://ysineywymdxunxmzsrah.supabase.co";
+            const key = "sb_publishable_bZZK1OpRYB6BlPhewjdh5A__ANxWC10";
+            
+            // Populate input tags for preview
+            const urlInput = document.getElementById('sbUrl');
+            const keyInput = document.getElementById('sbKey');
+            if(urlInput) urlInput.value = url;
+            if(keyInput) keyInput.value = key;
+            
+            try {
+                sbClient = supabase.createClient(url, key);
+                document.getElementById('realtimeStatusText').innerText = "Supabase जडान प्रयास...";
+                setupSupabaseRealtime();
+                fetchSupabaseData();
+            } catch (e) {
+                console.warn("Supabase initialization error:", e);
+                document.getElementById('realtimeStatusText').innerText = "सुरक्षित मोड सक्रिय";
+            }
+        }
+
+        // Live Supabase Realtime Listener setup (With sandbox & WebSocket safe-guarding)
+        function setupSupabaseRealtime() {
+            if (!sbClient) return;
+            
+            try {
+                // Check if WebSocket is blocked or restricted in the current runtime context (e.g., Canvas sandbox)
+                if (typeof WebSocket === 'undefined') {
+                    console.warn("WebSockets are not available/supported in this sandbox environment. Live sync fallback active.");
+                    document.getElementById('realtimeStatusText').innerText = "सुरक्षित सिम्युलेटर मोड सक्रिय";
+                    return;
+                }
+
+                const channel = sbClient.channel('custom-all-channel')
+                .on('postgres_changes', { event: '*', schema: 'public', table: 'courses' }, payload => {
+                    triggerToast("Supabase: कोर्सहरू स्वतः सिंक भयो!", "fa-database");
+                    fetchSupabaseData();
+                })
+                .on('postgres_changes', { event: '*', schema: 'public', table: 'lessons' }, payload => {
+                    triggerToast("Supabase: नयाँ पाठ स्वतः सिंक भयो!", "fa-bolt");
+                    fetchSupabaseData();
+                });
+
+                channel.subscribe((status, err) => {
+                    if (status === 'CHANNEL_ERROR' || err) {
+                        console.warn("Supabase Realtime subscription blocked/failed (expected in restricted Sandboxes):", err);
+                        document.getElementById('realtimeStatusText').innerText = "सुरक्षित सिम्युलेटर मोड सक्रिय";
+                        // Safely clean up the failing channel connection
+                        try {
+                            sbClient.removeChannel(channel);
+                        } catch (errClean) {}
+                    } else if (status === 'SUBSCRIBED') {
+                        document.getElementById('realtimeStatusText').innerText = "Supabase लाइभ जडान सक्रिय";
+                    }
+                });
+            } catch (e) {
+                console.warn("WebSocket initiation safely bypassed due to sandbox restrictions:", e.message);
+                document.getElementById('realtimeStatusText').innerText = "सुरक्षित सिम्युलेटर मोड सक्रिय";
+            }
+        }
+
+        // Fetch data from real Supabase Database
+        async function fetchSupabaseData() {
+            if (!sbClient) return;
+            try {
+                let { data: sbCourses, error: courseErr } = await sbClient.from('courses').select('*');
+                let { data: sbLessons, error: lessonErr } = await sbClient.from('lessons').select('*');
+                
+                if (courseErr || lessonErr) throw courseErr || lessonErr;
+                
+                courses = sbCourses || [];
+                lessons = sbLessons || [];
+                
+                localStorage.setItem('elearning_courses', JSON.stringify(courses));
+                localStorage.setItem('elearning_lessons', JSON.stringify(lessons));
+                
+                renderAll();
+            } catch (e) {
+                console.error("Fetch database error:", e);
+            }
+        }
+
+        // Toast notifications controller
+        function triggerToast(message, icon = "fa-bell") {
+            const toast = document.getElementById('toast');
+            const toastMsg = document.getElementById('toastMsg');
+            const toastIcon = document.getElementById('toastIcon');
+            
+            toastIcon.innerHTML = `<i class="fa-solid ${icon}"></i>`;
+            toastMsg.innerText = message;
+            
+            toast.className = toast.className.replace('translate-y-20 opacity-0 pointer-events-none', 'translate-y-0 opacity-100 pointer-events-auto');
+            setTimeout(() => {
+                toast.className = toast.className.replace('translate-y-0 opacity-100 pointer-events-auto', 'translate-y-20 opacity-0 pointer-events-none');
+            }, 4000);
+        }
+
+        // Navigation tab switching with safety block
+        function switchTab(tabName) {
+            // Strict Role Bypass Block
+            if ((tabName === 'teacher' || tabName === 'settings') && currentUser.role !== 'teacher') {
+                triggerToast("त्रुटि: यो पोर्टल चलाउने अनुमति तपाईंलाई छैन!", "fa-ban");
+                return;
+            }
+
+            currentTab = tabName;
+            
+            // Hide all tabs
+            document.getElementById('tab-student').classList.add('hidden');
+            document.getElementById('tab-teacher').classList.add('hidden');
+            document.getElementById('tab-settings').classList.add('hidden');
+            
+            // Show active tab
+            document.getElementById(`tab-${tabName}`).classList.remove('hidden');
+            
+            // Reset and activate menu button style
+            ['student', 'teacher', 'settings'].forEach(t => {
+                const btn = document.getElementById(`tabBtn-${t}`);
+                if (!btn) return;
+                if (t === tabName) {
+                    btn.className = "px-4 py-2 text-sm rounded-md font-semibold transition bg-blue-600 text-white shadow-sm";
+                } else {
+                    btn.className = "px-4 py-2 text-sm rounded-md font-semibold transition text-slate-300 hover:text-white hover:bg-slate-800";
+                }
+            });
+            
+            renderAll();
+        }
+
+        // RENDER MASTER CONTROLLER
+        function renderAll() {
+            renderStudentView();
+            renderDashboardView();
+            updateStats();
+        }
+
+        // Update dashboard-wide statistics
+        function updateStats() {
+            document.getElementById('statStudentCourses').innerText = courses.length;
+            document.getElementById('statTeacherCourses').innerText = courses.length;
+            document.getElementById('statTeacherLessons').innerText = lessons.length;
+            
+            const pdfCount = lessons.filter(l => l.pdf_url && l.pdf_url.trim() !== "").length;
+            document.getElementById('statStudentPDFs').innerText = pdfCount;
+        }
+
+        // Render Student Portal Page View
+        function renderStudentView() {
+            const grid = document.getElementById('studentCourseGrid');
+            grid.innerHTML = "";
+            
+            let filtered = courses;
+            
+            // Apply subject filter
+            if (activeCategory !== 'all') {
+                filtered = courses.filter(c => c.subject === activeCategory);
+            }
+            
+            if (filtered.length === 0) {
+                grid.innerHTML = `
+                    <div class="col-span-full bg-white rounded-2xl p-10 text-center border border-slate-200">
+                        <span class="text-5xl">📖</span>
+                        <h4 class="text-lg font-bold text-slate-700 mt-4">कुनै कोर्स उपलब्ध छैन</h4>
+                        <p class="text-sm text-slate-400 mt-1">शिक्षक ड्यासबोर्डमा गएर नयाँ कोर्स सिर्जना गर्नुहोस्।</p>
+                    </div>
+                `;
+                return;
+            }
+
+            filtered.forEach(course => {
+                const courseLessons = lessons.filter(l => l.course_id === course.id);
+                
+                const card = document.createElement('div');
+                card.className = "bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition border border-slate-200 flex flex-col justify-between fade-in";
+                card.innerHTML = `
+                    <div>
+                        <div class="h-44 overflow-hidden relative bg-slate-900">
+                            <img src="${course.thumbnail || 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3'}" alt="${course.title}" class="w-full h-full object-cover opacity-90">
+                            <span class="absolute top-3 left-3 bg-blue-600 text-white text-xs font-bold px-2.5 py-1 rounded-full">${course.subject}</span>
+                            <span class="absolute bottom-3 right-3 bg-slate-950/80 backdrop-blur-sm text-white text-xs px-2.5 py-1.5 rounded-lg font-semibold"><i class="fa-solid fa-list mr-1 text-amber-400"></i> ${courseLessons.length} अध्यायहरू</span>
+                        </div>
+                        <div class="p-5">
+                            <h3 class="text-base font-extrabold text-slate-900 line-clamp-2 leading-snug mb-2">${course.title}</h3>
+                            <p class="text-xs text-slate-500 line-clamp-3 mb-4">${course.description}</p>
+                        </div>
+                    </div>
+                    <div class="p-5 pt-0">
+                        <button onclick="openClassroom('${course.id}')" class="w-full bg-blue-50 text-blue-700 hover:bg-blue-600 hover:text-white transition font-bold text-xs py-3 rounded-xl flex items-center justify-center space-x-2">
+                            <span>कक्षामा प्रवेश गर्नुहोस्</span> <i class="fa-solid fa-circle-arrow-right"></i>
+                        </button>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        // Search Filter
+        function filterCourses() {
+            const searchVal = document.getElementById('courseSearch').value.toLowerCase();
+            const cards = document.querySelectorAll('#studentCourseGrid > div');
+            
+            cards.forEach((card) => {
+                const title = card.querySelector('h3').innerText.toLowerCase();
+                const desc = card.querySelector('p').innerText.toLowerCase();
+                
+                if (title.includes(searchVal) || desc.includes(searchVal)) {
+                    card.classList.remove('hidden');
+                } else {
+                    card.classList.add('hidden');
+                }
+            });
+        }
+
+        // Category Filter
+        function filterCategory(subject) {
+            activeCategory = subject;
+            
+            const buttons = document.querySelectorAll('#categoryList button');
+            buttons.forEach(btn => {
+                if (btn.getAttribute('onclick').includes(subject)) {
+                    btn.className = "w-full text-left px-3 py-2 rounded-lg text-sm font-semibold bg-blue-50 text-blue-700";
+                } else {
+                    btn.className = "w-full text-left px-3 py-2 rounded-lg text-sm text-slate-600 hover:bg-slate-50";
+                }
+            });
+            
+            renderStudentView();
+        }
+
+        // Open Classroom Details
+        function openClassroom(courseId) {
+            activeClassroomCourse = courseId;
+            const course = courses.find(c => c.id === courseId);
+            if (!course) return;
+
+            document.getElementById('classroomViewer').classList.remove('hidden');
+            document.getElementById('classroomCourseTitle').innerText = course.title;
+            
+            renderClassroomChapters(courseId);
+            
+            const firstChapterBtn = document.querySelector('#classroomChaptersList button');
+            if (firstChapterBtn) {
+                firstChapterBtn.click();
+            } else {
+                setEmptyClassroom();
+            }
+            
+            document.getElementById('classroomViewer').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function closeClassroom() {
+            activeClassroomCourse = null;
+            document.getElementById('classroomViewer').classList.add('hidden');
+            document.getElementById('classroomVideoPlayer').src = "";
+        }
+
+        function setEmptyClassroom() {
+            document.getElementById('classroomLessonTitle').innerText = "यस कोर्समा कुनै अध्याय उपलब्ध छैन";
+            document.getElementById('classroomVideoPlayer').src = "";
+            document.getElementById('classroomPdfCard').classList.add('hidden');
+            document.getElementById('classroomImgCard').classList.add('hidden');
+        }
+
+        function renderClassroomChapters(courseId) {
+            const listContainer = document.getElementById('classroomChaptersList');
+            listContainer.innerHTML = "";
+            
+            const courseLessons = lessons.filter(l => l.course_id === courseId);
+            
+            if (courseLessons.length === 0) {
+                listContainer.innerHTML = `<p class="text-xs text-slate-400 p-2">कुनै सिकाई सामाग्री छैन।</p>`;
+                return;
+            }
+
+            courseLessons.forEach((lesson, index) => {
+                const btn = document.createElement('button');
+                btn.className = "w-full text-left p-3 rounded-xl text-xs border border-slate-200 bg-white hover:bg-slate-100 flex items-start space-x-2 transition font-semibold";
+                btn.onclick = () => selectClassroomLesson(lesson, btn);
+                btn.innerHTML = `
+                    <span class="bg-blue-100 text-blue-700 h-5 w-5 rounded-full flex items-center justify-center text-[10px] shrink-0">${index + 1}</span>
+                    <span class="text-slate-700 line-clamp-2 leading-snug">${lesson.title}</span>
+                `;
+                listContainer.appendChild(btn);
+            });
+        }
+
+        function selectClassroomLesson(lesson, element) {
+            document.querySelectorAll('#classroomChaptersList button').forEach(b => {
+                b.className = "w-full text-left p-3 rounded-xl text-xs border border-slate-200 bg-white hover:bg-slate-100 flex items-start space-x-2 transition font-semibold";
+            });
+            element.className = "w-full text-left p-3 rounded-xl text-xs border-2 border-blue-600 bg-blue-50/50 flex items-start space-x-2 transition font-bold text-blue-900";
+
+            document.getElementById('classroomLessonTitle').innerText = lesson.title;
+            
+            // Build Secure YouTube Embed player URL (rel=0, controls, no right click)
+            if (lesson.youtube_url) {
+                document.getElementById('classroomVideoPlayer').src = `https://www.youtube.com/embed/${lesson.youtube_url}?autoplay=0&rel=0&modestbranding=1`;
+            } else {
+                document.getElementById('classroomVideoPlayer').src = "";
+            }
+
+            // Load PDF
+            if (lesson.pdf_url && lesson.pdf_url.trim() !== "") {
+                document.getElementById('classroomPdfCard').classList.remove('hidden');
+                document.getElementById('classroomPdfLink').href = lesson.pdf_url;
+            } else {
+                document.getElementById('classroomPdfCard').classList.add('hidden');
+            }
+
+            // Load Class Image
+            if (lesson.image_url && lesson.image_url.trim() !== "") {
+                document.getElementById('classroomImgCard').classList.remove('hidden');
+                document.getElementById('classroomImgCard').setAttribute('data-img-url', lesson.image_url);
+            } else {
+                document.getElementById('classroomImgCard').classList.add('hidden');
+            }
+        }
+
+        // FULL SCREEN IMAGE HANDLERS
+        function openFullImage() {
+            const imgUrl = document.getElementById('classroomImgCard').getAttribute('data-img-url');
+            if (!imgUrl) return;
+            
+            document.getElementById('modalImageTarget').src = imgUrl;
+            document.getElementById('imageModal').classList.remove('hidden');
+        }
+
+        function closeFullImage() {
+            document.getElementById('imageModal').classList.add('hidden');
+            document.getElementById('modalImageTarget').src = "";
+        }
+
+        // TEACHER DASHBOARD LOGIC
+        function renderDashboardView() {
+            if (currentUser && currentUser.role !== 'teacher') return;
+
+            const selectDropdown = document.getElementById('lessonTargetCourse');
+            if (!selectDropdown) return;
+            selectDropdown.innerHTML = `<option value="">पहिले कोर्स रोज्नुहोस्...</option>`;
+            
+            courses.forEach(c => {
+                const opt = document.createElement('option');
+                opt.value = c.id;
+                opt.innerText = c.title;
+                selectDropdown.appendChild(opt);
+            });
+
+            const listContainer = document.getElementById('teacherCourseList');
+            if (!listContainer) return;
+            listContainer.innerHTML = "";
+
+            if (courses.length === 0) {
+                listContainer.innerHTML = `
+                    <div class="text-center p-8 bg-slate-50 rounded-xl border border-dashed border-slate-300">
+                        <span class="text-4xl">📂</span>
+                        <h4 class="text-sm font-semibold text-slate-500 mt-2">प्रबन्धक प्यानल खाली छ</h4>
+                        <p class="text-xs text-slate-400 mt-1">तपाईंले कुनै कोर्स थप्नुभएको छैन। सुरु गर्न देब्रे फारम भर्नुहोस्।</p>
+                    </div>
+                `;
+                return;
+            }
+
+            courses.forEach((course) => {
+                const courseLessons = lessons.filter(l => l.course_id === course.id);
+                
+                const item = document.createElement('div');
+                item.className = "bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-3";
+                
+                let lessonsHtml = "";
+                if (courseLessons.length === 0) {
+                    lessonsHtml = `<li class="text-slate-400">कुनै पाठ थपिएको छैन।</li>`;
+                } else {
+                    courseLessons.forEach((l) => {
+                        lessonsHtml += `
+                            <li class="flex justify-between items-center bg-white p-2.5 rounded-lg border border-slate-200">
+                                <div class="flex items-center space-x-2">
+                                    <span class="text-red-500 text-sm"><i class="fa-brands fa-youtube"></i></span>
+                                    <span class="font-bold text-xs text-slate-700">${l.title}</span>
+                                </div>
+                                <div class="flex space-x-1">
+                                    ${l.pdf_url ? '<span class="text-[10px] bg-red-100 text-red-700 font-bold px-1.5 py-0.5 rounded">PDF</span>' : ''}
+                                    ${l.image_url ? '<span class="text-[10px] bg-emerald-100 text-emerald-700 font-bold px-1.5 py-0.5 rounded">IMG</span>' : ''}
+                                    <button onclick="handleDeleteLesson('${l.id}')" class="text-slate-400 hover:text-red-600 text-xs px-2"><i class="fa-solid fa-trash-can"></i></button>
+                                </div>
+                            </li>
+                        `;
+                    });
+                }
+
+                item.innerHTML = `
+                    <div class="flex justify-between items-center border-b pb-2">
+                        <div>
+                            <span class="text-[10px] bg-blue-100 text-blue-700 font-bold px-2 py-0.5 rounded-full">${course.subject}</span>
+                            <h4 class="font-bold text-sm text-slate-800 mt-1">${course.title}</h4>
+                        </div>
+                        <button onclick="handleDeleteCourse('${course.id}')" class="bg-red-50 text-red-600 hover:bg-red-100 h-8 w-8 rounded-lg flex items-center justify-center text-xs transition">
+                            <i class="fa-solid fa-trash"></i>
+                        </button>
+                    </div>
+                    <div>
+                        <span class="text-xs font-bold text-slate-400 block mb-2">पाठ्यक्रमका अध्यायहरू:</span>
+                        <ul class="space-y-1.5 text-xs">
+                            ${lessonsHtml}
+                        </ul>
+                    </div>
+                `;
+                listContainer.appendChild(item);
+            });
+        }
+
+        // CREATE COURSE EVENT
+        async function handleCreateCourse(e) {
+            e.preventDefault();
+            const title = document.getElementById('newCourseTitle').value.trim();
+            const subject = document.getElementById('newCourseSubject').value;
+            const thumbnail = document.getElementById('newCourseThumbnail').value.trim();
+            const description = document.getElementById('newCourseDesc').value.trim();
+
+            const newCourse = {
+                id: "course-" + Date.now(),
+                title,
+                subject,
+                thumbnail,
+                description
+            };
+
+            if (sbClient) {
+                try {
+                    const userResponse = await sbClient.auth.getUser();
+                    const teacher_id = userResponse?.data?.user?.id || "00000000-0000-0000-0000-000000000000";
+                    
+                    const { error } = await sbClient.from('courses').insert([{
+                        id: newCourse.id, // Keep uniform ID layout for system consistency
+                        title,
+                        subject,
+                        thumbnail,
+                        description,
+                        teacher_id: teacher_id
+                    }]);
+                    if (error) throw error;
+                    triggerToast("Supabase: नयाँ कोर्स डेटाबेसमा सुरक्षित गरियो।", "fa-circle-check");
+                    fetchSupabaseData();
+                } catch (err) {
+                    triggerToast("त्रुटि: " + err.message, "fa-circle-xmark");
+                }
+            } else {
+                courses.push(newCourse);
+                localStorage.setItem('elearning_courses', JSON.stringify(courses));
+                triggerToast("सिम्युलेटर: नयाँ कोर्स ड्यासबोर्डमा सुरक्षित गरियो!", "fa-circle-check");
+                renderAll();
+            }
+
+            document.getElementById('addCourseForm').reset();
+        }
+
+        // CREATE LESSON EVENT
+        async function handleCreateLesson(e) {
+            e.preventDefault();
+            const courseId = document.getElementById('lessonTargetCourse').value;
+            const title = document.getElementById('newLessonTitle').value.trim();
+            const ytUrl = document.getElementById('newLessonYoutube').value.trim();
+            const pdfUrl = document.getElementById('newLessonPdf').value.trim();
+            const imageUrl = document.getElementById('newLessonImage').value.trim();
+
+            if (!courseId) {
+                triggerToast("कृपया पहिले सम्बन्धित कोर्स छनौट गर्नुहोस्।", "fa-triangle-exclamation");
+                return;
+            }
+
+            let ytId = ytUrl;
+            const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+            const match = ytUrl.match(regExp);
+            if (match && match[2].length === 11) {
+                ytId = match[2];
+            }
+
+            const newLesson = {
+                id: "lesson-" + Date.now(),
+                course_id: courseId,
+                title,
+                youtube_url: ytId,
+                pdf_url: pdfUrl,
+                image_url: imageUrl
+            };
+
+            if (sbClient) {
+                try {
+                    const { error } = await sbClient.from('lessons').insert([{
+                        id: newLesson.id,
+                        course_id: courseId,
+                        title,
+                        youtube_url: ytId,
+                        pdf_url: pdfUrl,
+                        image_url: imageUrl
+                    }]);
+                    if (error) throw error;
+                    triggerToast("Supabase: नयाँ पाठ सुरक्षित गरियो।", "fa-bolt");
+                    fetchSupabaseData();
+                } catch (err) {
+                    triggerToast("त्रुटि: " + err.message, "fa-circle-xmark");
+                }
+            } else {
+                lessons.push(newLesson);
+                localStorage.setItem('elearning_lessons', JSON.stringify(lessons));
+                triggerToast("नयाँ पाठ सफलतापूर्वक थपियो र विद्यार्थीहरूका लागि स्वतः अपडेट भयो!", "fa-bolt");
+                renderAll();
+                
+                if (activeClassroomCourse === courseId) {
+                    renderClassroomChapters(courseId);
+                }
+            }
+
+            document.getElementById('addLessonForm').reset();
+        }
+
+        // DELETE COURSE
+        async function handleDeleteCourse(courseId) {
+            if (!confirm("के तपाईं यो कोर्स र यस अन्तर्गतका सम्पूर्ण पाठहरू मेटाउन चाहनुहुन्छ?")) return;
+
+            if (sbClient) {
+                try {
+                    const { error } = await sbClient.from('courses').delete().eq('id', courseId);
+                    if (error) throw error;
+                    triggerToast("Supabase: कोर्स मेटाइयो।", "fa-trash-can");
+                    fetchSupabaseData();
+                } catch (err) {
+                    triggerToast("त्रुटि: " + err.message, "fa-circle-xmark");
+                }
+            } else {
+                courses = courses.filter(c => c.id !== courseId);
+                lessons = lessons.filter(l => l.course_id !== courseId);
+                localStorage.setItem('elearning_courses', JSON.stringify(courses));
+                localStorage.setItem('elearning_lessons', JSON.stringify(lessons));
+                triggerToast("सिम्युलेटर: कोर्स र सम्बद्ध पाठहरू मेटाइयो।", "fa-trash-can");
+                renderAll();
+                if (activeClassroomCourse === courseId) {
+                    closeClassroom();
+                }
+            }
+        }
+
+        // DELETE LESSON
+        async function handleDeleteLesson(lessonId) {
+            if (!confirm("के तपाईं यो पाठ विवरण हटाउन चाहनुहुन्छ?")) return;
+
+            if (sbClient) {
+                try {
+                    const { error } = await sbClient.from('lessons').delete().eq('id', lessonId);
+                    if (error) throw error;
+                    triggerToast("Supabase: पाठ मेटाइयो।", "fa-trash-can");
+                    fetchSupabaseData();
+                } catch (err) {
+                    triggerToast("त्रुटि: " + err.message, "fa-circle-xmark");
+                }
+            } else {
+                lessons = lessons.filter(l => l.id !== lessonId);
+                localStorage.setItem('elearning_lessons', JSON.stringify(lessons));
+                triggerToast("सिम्युलेटर: पाठ मेटाइयो।", "fa-trash-can");
+                renderAll();
+                if (activeClassroomCourse) {
+                    renderClassroomChapters(activeClassroomCourse);
+                }
+            }
+        }
+
+        // RESET DEMO STATE
+        function clearAllDataDemo() {
+            if (confirm("के तपाईं सिम्युलेटरको सबै डाटाहरू मेटाएर सुरुवाती अवस्थामा फर्काउन चाहनुहुन्छ?")) {
+                localStorage.removeItem('elearning_courses');
+                localStorage.removeItem('elearning_lessons');
+                closeClassroom();
+                initDatabase();
+                renderAll();
+                triggerToast("सिम्युलेटर पुन: सुरुवाती स्थितिमा सेट भयो।", "fa-rotate");
+            }
+        }
+    </script>
+</body>
+</html>
