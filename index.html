@@ -33,6 +33,7 @@
             height: 100%;
             background: transparent;
             z-index: 10;
+            pointer-events: none; /* यो नयाँ लाइन थपिएको हो */
         }
         /* Smooth animations */
         .fade-in {
@@ -1051,11 +1052,19 @@
             document.getElementById('classroomLessonTitle').innerText = lesson.title;
             
             // Build Secure YouTube Embed player URL (rel=0, controls, no right click)
-            if (lesson.youtube_url) {
-                document.getElementById('classroomVideoPlayer').src = `https://www.youtube.com/embed/${lesson.youtube_url}?autoplay=0&rel=0&modestbranding=1`;
-            } else {
-                document.getElementById('classroomVideoPlayer').src = "";
-            }
+            // Build Secure YouTube Embed player URL (With strict auto-fallback for raw Youtube IDs and Full URLs)
+if (lesson.youtube_url) {
+    let ytId = lesson.youtube_url.trim();
+    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+    const match = ytId.match(regExp);
+    if (match && match[2].length === 11) {
+        ytId = match[2]; // यहाँ लिङ्कबाट भिडियो ID मात्र निकालिन्छ
+    }
+    // अब यो सुरक्षित लिङ्क स्वतः प्ले हुने गरी सेट हुन्छ
+    document.getElementById('classroomVideoPlayer').src = `https://www.youtube.com/embed/${ytId}?autoplay=1&rel=0&modestbranding=1`;
+} else {
+    document.getElementById('classroomVideoPlayer').src = "";
+}
 
             // Load PDF
             if (lesson.pdf_url && lesson.pdf_url.trim() !== "") {
