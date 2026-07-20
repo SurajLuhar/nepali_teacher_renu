@@ -1144,6 +1144,9 @@ if (lesson.youtube_url) {
                                 <div class="flex space-x-1">
                                     ${l.pdf_url ? '<span class="text-[10px] bg-red-100 text-red-700 font-bold px-1.5 py-0.5 rounded">PDF</span>' : ''}
                                     ${l.image_url ? '<span class="text-[10px] bg-emerald-100 text-emerald-700 font-bold px-1.5 py-0.5 rounded">IMG</span>' : ''}
+                                    <button onclick="openEditLessonModal('${l.id}')" class="text-blue-500 hover:text-blue-700 text-xs px-2" title="सम्पादन गर्नुहोस्">
+                                    <i class="fa-solid fa-pen-to-square"></i>
+                                    </button>
                                     <button onclick="handleDeleteLesson('${l.id}')" class="text-slate-400 hover:text-red-600 text-xs px-2"><i class="fa-solid fa-trash-can"></i></button>
                                 </div>
                             </li>
@@ -1276,6 +1279,70 @@ if (lesson.youtube_url) {
 
             document.getElementById('addLessonForm').reset();
         }
+        // ==================== NEW: LESSON EDIT AND UPDATE CONTROLLERS ====================
+function openEditLessonModal(lessonId) {
+    const lesson = lessons.find(l => l.id === lessonId);
+    if (!lesson) return;
+
+    // फारममा पुराना विवरणहरू भर्ने
+    document.getElementById('editLessonId').value = lesson.id;
+    document.getElementById('editLessonCourseId').value = lesson.course_id;
+    document.getElementById('editLessonTitle').value = lesson.title;
+    document.getElementById('editLessonYoutube').value = lesson.youtube_url;
+    document.getElementById('editLessonPdf').value = lesson.pdf_url || '';
+    document.getElementById('editLessonImage').value = lesson.image_url || '';
+
+    // मोडल देखाउने
+    document.getElementById('editLessonModal').classList.remove('hidden');
+}
+
+function closeEditLessonModal() {
+    document.getElementById('editLessonModal').classList.add('hidden');
+    document.getElementById('editLessonForm').reset();
+}
+
+async function handleUpdateLesson(e) {
+    e.preventDefault();
+    const id = document.getElementById('editLessonId').value;
+    const courseId = document.getElementById('editLessonCourseId').value;
+    const title = document.getElementById('editLessonTitle').value.trim();
+    const ytUrl = document.getElementById('editLessonYoutube').value.trim();
+    const pdfUrl = document.getElementById('editLessonPdf').value.trim();
+    const imageUrl = document.getElementById('editLessonImage').value.trim();
+
+    // YouTube URL बाट ID निकाल्ने
+    let ytId = ytUrl;
+    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+    const match = ytUrl.match(regExp);
+    if (match && match[2].length === 11) { ytId = match[2]; }
+
+    if (sbClient) {
+        // Supabase डेटाबेस अपडेट
+        try {
+            const { error } = await sbClient
+                .from('lessons')
+                .update({ title, youtube_url: ytId, pdf_url: pdfUrl, image_url: imageUrl })
+                .eq('id', id);
+
+            if (error) throw error;
+            triggerToast("Supabase: पाठ सफलतापूर्वक अपडेट भयो।", "fa-circle-check");
+            fetchSupabaseData();
+        } catch (err) {
+            triggerToast("अपडेट त्रुटि: " + err.message, "fa-circle-xmark");
+        }
+    } else {
+        // LocalStorage सिम्युलेटर अपडेट
+        const index = lessons.findIndex(l => l.id === id);
+        if (index !== -1) {
+            lessons[index] = { id, course_id: courseId, title, youtube_url: ytId, pdf_url: pdfUrl, image_url: imageUrl };
+            localStorage.setItem('elearning_lessons', JSON.stringify(lessons));
+            triggerToast("सिम्युलेटर: पाठको विवरण परिमार्जन गरियो!", "fa-circle-check");
+            renderAll();
+            if (activeClassroomCourse === courseId) { renderClassroomChapters(courseId); }
+        }
+    }
+    closeEditLessonModal();
+}
 
         // DELETE COURSE
         async function handleDeleteCourse(courseId) {
@@ -1339,5 +1406,39 @@ if (lesson.youtube_url) {
             }
         }
     </script>
+    <div id="editLessonModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-white w-full max-w-lg rounded-2xl shadow-2xl border border-slate-200 overflow-hidden fade-in">
+        <div class="bg-slate-900 text-white p-4 flex justify-between items-center">
+            <h3 class="text-base font-bold text-amber-500"><i class="fa-solid fa-pen-to-square mr-2"></i>पाठ सम्पादन गर्नुहोस्</h3>
+            <button onclick="closeEditLessonModal()" class="text-slate-400 hover:text-white text-xl"><i class="fa-solid fa-circle-xmark"></i></button>
+        </div>
+        <form id="editLessonForm" onsubmit="handleUpdateLesson(event)" class="p-6 space-y-4">
+            <input type="hidden" id="editLessonId">
+            <input type="hidden" id="editLessonCourseId">
+            <div>
+                <label class="block text-xs font-semibold text-slate-600 mb-1">अध्याय वा पाठको शीर्षक *</label>
+                <input type="text" id="editLessonTitle" required class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+            </div>
+            <div>
+                <label class="block text-xs font-semibold text-slate-600 mb-1">YouTube भिडियो आईडी वा पूरा लिङ्क *</label>
+                <input type="text" id="editLessonYoutube" required class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+            </div>
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">PDF नोट लिङ्क</label>
+                    <input type="url" id="editLessonPdf" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">कक्षा चित्र/इमेज लिङ्क</label>
+                    <input type="url" id="editLessonImage" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+            </div>
+            <div class="flex justify-end space-x-2 pt-2 border-t">
+                <button type="button" onclick="closeEditLessonModal()" class="bg-slate-200 hover:bg-slate-300 text-slate-700 text-xs font-bold px-4 py-2 rounded-lg transition">रद्द गर्नुहोस्</button>
+                <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-4 py-2 rounded-lg transition">विवरण अपडेट गर्नुहोस्</button>
+            </div>
+        </form>
+    </div>
+</div>
 </body>
 </html>
